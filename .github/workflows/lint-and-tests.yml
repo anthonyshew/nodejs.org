@@ -50,10 +50,6 @@ jobs:
     # since we want to run lint checks against any changes on pull requests, or the final patch on merge groups
     # or if direct pushes happen to main (or when changes in general land on the `main` (default) branch)
     # Note that the reason why we run this on pushes against `main` is that on rare cases, maintainers might do direct pushes against `main`
-    if: |
-      (github.event_name == 'push' || github.event_name == 'merge_group') ||
-      (github.event_name == 'pull_request_target' &&
-        github.event.label.name == 'github_actions:pull-request')
 
     name: Quality checks
     runs-on: ubuntu-latest
@@ -150,10 +146,6 @@ jobs:
     # or `pull_request_target` event with a `labeled` action with a label named `github_actions:pull-request`
     # since we want to run lint checks against any changes on pull requests and on final patches against a pull request.
     # We don't need to execute the tests again on pushes against (`main`) as the merge group should already handle that
-    if: |
-      (github.event_name == 'push' || github.event_name == 'merge_group') ||
-      (github.event_name == 'pull_request_target' &&
-        github.event.label.name == 'github_actions:pull-request')
 
     name: Tests
     runs-on: ubuntu-latest
