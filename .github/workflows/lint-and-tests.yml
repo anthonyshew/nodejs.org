@@ -8,13 +8,10 @@ name: Linting and Tests
 
 on:
   push:
-    branches:
-      - main
-    # pull_request_target:
-    #   branches:
-    #     - main
-    # types:
-    #   - labeled
+    branches: ['main']
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: ['main']
   merge_group:
 
 defaults:
