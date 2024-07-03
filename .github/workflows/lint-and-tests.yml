@@ -8,14 +8,10 @@ name: Linting and Tests
 
 on:
   push:
-    branches:
-      - main
-  pull_request_target:
-    branches:
-      - main
-    types:
-      - labeled
-  merge_group:
+    branches: ['main']
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: ['main']
 
 defaults:
   run:
@@ -45,9 +41,8 @@ jobs:
         # This step is responsible for providing a reusable string that can be used within other steps and jobs
         # that use the `turbo` cli command as a way of easily providing shared arguments to the `turbo` command
         id: turborepo_arguments
-        # See https://turbo.build/repo/docs/reference/command-line-reference/run#--cache-dir
         # See https://turbo.build/repo/docs/reference/command-line-reference/run#--force
-        run: echo "turbo_args=--force=true --cache-dir=.turbo/cache" >> "$GITHUB_OUTPUT"
+        run: echo "turbo_args=--force=true" >> "$GITHUB_OUTPUT"
 
   lint:
     # This Job should run either on `merge_groups` or `push` events
@@ -55,10 +50,6 @@ jobs:
     # since we want to run lint checks against any changes on pull requests, or the final patch on merge groups
     # or if direct pushes happen to main (or when changes in general land on the `main` (default) branch)
     # Note that the reason why we run this on pushes against `main` is that on rare cases, maintainers might do direct pushes against `main`
-    if: |
-      (github.event_name == 'push' || github.event_name == 'merge_group') ||
-      (github.event_name == 'pull_request_target' &&
-        github.event.label.name == 'github_actions:pull-request')
 
     name: Quality checks
     runs-on: ubuntu-latest
@@ -120,17 +111,9 @@ jobs:
         # We run the ESLint and Prettier commands on all Workflow triggers of the `Lint` job, besides if
         # the Pull Request comes from a Crowdin Branch, as we don't want to run ESLint and Prettier on Crowdin PRs
         # Note: Linting and Prettifying of files on Crowdin PRs is handled by the `translations-pr.yml` Workflow
-        if: |
-          (github.event_name == 'push' || github.event_name == 'merge_group') ||
-          (github.event_name == 'pull_request_target' &&
-            github.event.pull_request.head.ref != 'chore/crowdin')
         # We want to enforce that the actual `turbo@latest` package is used instead of a possible hijack from the user
         # the `${{ needs.base.outputs.turbo_args }}` is a string substitution happening from the base job
-        run: npx --package=turbo@latest -- turbo lint:js lint:md lint:css prettier ${{ needs.base.outputs.turbo_args }}
-
-      - name: Run `tsc build`
-        # We want to ensure that the whole codebase is passing and successfully compiles with TypeScript
-        run: npx --package=typescript@latest -- tsc --build .
+        run: npx --package=turbo@latest -- turbo lint check-types prettier ${{ needs.base.outputs.turbo_args }}
 
       - name: Save Lint Cache
         # We only want to save caches on `push` events or `pull_request_target` events
@@ -138,11 +121,6 @@ jobs:
         # or if it comes from an automated Crowdin Pull Request
         # The reason we save caches on `push` is because caches creates on `main` (default) branches can be reused within
         # other Pull Requests and PRs coming from forks
-        if: |
-          github.event_name == 'push' ||
-          (github.event_name == 'pull_request_target' &&
-            startsWith(github.event.pull_request.head.ref, 'dependabot/') == false &&
-            github.event.pull_request.head.ref != 'chore/crowdin')
         uses: actions/cache/save@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
         with:
           path: |
@@ -159,10 +137,6 @@ jobs:
     # or `pull_request_target` event with a `labeled` action with a label named `github_actions:pull-request`
     # since we want to run lint checks against any changes on pull requests and on final patches against a pull request.
     # We don't need to execute the tests again on pushes against (`main`) as the merge group should already handle that
-    if: |
-      (github.event_name == 'push' || github.event_name == 'merge_group') ||
-      (github.event_name == 'pull_request_target' &&
-        github.event.label.name == 'github_actions:pull-request')
 
     name: Tests
     runs-on: ubuntu-latest
